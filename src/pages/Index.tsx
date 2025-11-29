@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,39 @@ import Icon from '@/components/ui/icon';
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [isLivePlaying, setIsLivePlaying] = useState(false);
+  const [volume, setVolume] = useState(0.7);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const RADIO_STREAM_URL = 'http://176.108.192.17:8000/stream';
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  const toggleLiveRadio = () => {
+    if (audioRef.current) {
+      if (isLivePlaying) {
+        audioRef.current.pause();
+        setIsLivePlaying(false);
+      } else {
+        audioRef.current.play().catch(err => {
+          console.error('Error playing radio:', err);
+        });
+        setIsLivePlaying(true);
+      }
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
 
   const navItems = [
     { id: 'home', label: 'Главная', icon: 'Home' },
@@ -148,23 +181,37 @@ const Index = () => {
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <audio ref={audioRef} src={RADIO_STREAM_URL} preload="none" />
                 <div className="flex items-center gap-4 mb-4">
-                  <Button size="lg" className="rounded-full w-16 h-16 bg-white text-primary hover:bg-white/90">
-                    <Icon name="Play" size={32} />
+                  <Button 
+                    size="lg" 
+                    className="rounded-full w-16 h-16 bg-white text-primary hover:bg-white/90"
+                    onClick={toggleLiveRadio}
+                  >
+                    <Icon name={isLivePlaying ? 'Pause' : 'Play'} size={32} />
                   </Button>
                   <div className="flex-1">
                     <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-white rounded-full w-1/3 animate-pulse"></div>
+                      <div className={`h-full bg-white rounded-full w-1/3 ${isLivePlaying ? 'animate-pulse' : ''}`}></div>
                     </div>
                   </div>
-                  <Button size="icon" variant="ghost" className="text-white hover:bg-white/10">
-                    <Icon name="Volume2" size={24} />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Icon name="Volume2" size={20} className="text-white" />
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.1" 
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm text-white/80">
-                  <span>08:00 - 09:00</span>
-                  <span>Ведущий: Дмитрий Иванов</span>
+                  <span>Прямой эфир</span>
+                  <span>Радио ЧТД · 176.108.192.17:8000</span>
                 </div>
               </div>
             </div>
