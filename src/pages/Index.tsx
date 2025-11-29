@@ -9,15 +9,37 @@ const Index = () => {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [isLivePlaying, setIsLivePlaying] = useState(false);
   const [volume, setVolume] = useState(0.7);
+  const [currentTrack, setCurrentTrack] = useState('Подключение...');
+  const [songRequest, setSongRequest] = useState({ name: '', song: '', message: '' });
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const RADIO_STREAM_URL = 'http://176.108.192.17:8000/stream';
+  const LOGO_URL = 'https://sun9-46.userapi.com/s/v1/ig2/1rB2hR5T6YsFflKnT3VzfcGvBUAajW-M3dDzEKLbo1Tb4RR5cgmPgt0xP-UVmiIDecAU5H_AKLjgScIjX35zi3CY.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720&from=bu&cs=720x0';
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
+
+  useEffect(() => {
+    const fetchCurrentTrack = async () => {
+      try {
+        const response = await fetch('http://176.108.192.17:8000/status-json.xsl');
+        const data = await response.json();
+        if (data.icestats?.source) {
+          const source = Array.isArray(data.icestats.source) ? data.icestats.source[0] : data.icestats.source;
+          setCurrentTrack(source.title || 'Прямой эфир');
+        }
+      } catch (error) {
+        setCurrentTrack('Прямой эфир');
+      }
+    };
+
+    fetchCurrentTrack();
+    const interval = setInterval(fetchCurrentTrack, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleLiveRadio = () => {
     if (audioRef.current) {
@@ -41,9 +63,17 @@ const Index = () => {
     }
   };
 
+  const handleSongRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Song request:', songRequest);
+    setSongRequest({ name: '', song: '', message: '' });
+    alert('Ваш заказ отправлен! Спасибо!');
+  };
+
   const navItems = [
     { id: 'home', label: 'Главная', icon: 'Home' },
     { id: 'radio', label: 'Радио', icon: 'Radio' },
+    { id: 'requests', label: 'Заказать песню', icon: 'Music' },
     { id: 'about', label: 'О медиа-группе', icon: 'Info' },
     { id: 'team', label: 'Команда', icon: 'Users' },
     { id: 'archive', label: 'Архив', icon: 'Archive' },
@@ -103,9 +133,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Icon name="Radio" className="text-white" size={24} />
-              </div>
+              <img src={LOGO_URL} alt="Логотип ЧТД" className="w-12 h-12 rounded-lg object-cover" />
               <div>
                 <h1 className="text-xl font-heading font-bold text-foreground">Медиа-группа ЧТД</h1>
                 <p className="text-xs text-muted-foreground">Центр творческого развития</p>
@@ -171,7 +199,7 @@ const Index = () => {
                   </div>
                   <div>
                     <h4 className="text-2xl font-heading font-bold">В эфире сейчас</h4>
-                    <p className="text-white/80">Утреннее шоу «Доброе утро, школа!»</p>
+                    <p className="text-white/80 animate-fade-in">{currentTrack}</p>
                   </div>
                 </div>
                 <Badge variant="secondary" className="animate-pulse">
@@ -234,6 +262,67 @@ const Index = () => {
                     <span className="text-muted-foreground">{show.title}</span>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section id="requests" className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-3xl">
+          <div className="text-center mb-12 animate-slide-up">
+            <h3 className="text-4xl font-heading font-bold mb-4">Стол заказов</h3>
+            <p className="text-muted-foreground text-lg">Закажите свою любимую песню в эфир!</p>
+          </div>
+          
+          <Card className="shadow-lg animate-scale-in">
+            <CardContent className="p-8">
+              <form onSubmit={handleSongRequest} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Ваше имя</label>
+                  <input
+                    type="text"
+                    value={songRequest.name}
+                    onChange={(e) => setSongRequest({...songRequest, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Как к вам обращаться?"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Название песни и исполнитель</label>
+                  <input
+                    type="text"
+                    value={songRequest.song}
+                    onChange={(e) => setSongRequest({...songRequest, song: e.target.value})}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Например: Би-2 - Полковнику никто не пишет"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Сообщение в эфир (необязательно)</label>
+                  <textarea
+                    value={songRequest.message}
+                    onChange={(e) => setSongRequest({...songRequest, message: e.target.value})}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
+                    placeholder="Поздравление, пожелание или посвящение..."
+                  />
+                </div>
+                
+                <Button type="submit" size="lg" className="w-full gap-2">
+                  <Icon name="Music" size={20} />
+                  Отправить заказ
+                </Button>
+              </form>
+              
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground flex items-start gap-2">
+                  <Icon name="Info" size={16} className="mt-0.5 shrink-0" />
+                  <span>Ваш заказ будет рассмотрен ведущим. Песни ставятся в порядке очереди с учётом формата эфира.</span>
+                </p>
               </div>
             </CardContent>
           </Card>
